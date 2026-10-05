@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   // Backend local usado pelo proxy /api em dev e preview
   const apiTarget = env.API_PROXY_TARGET || 'http://localhost:3333'
-  const proxy = { '/api': { target: apiTarget, changeOrigin: true } }
+  // xfwd: repassa o IP real do visitante (rate limit do login por pessoa)
+  const proxy = { '/api': { target: apiTarget, changeOrigin: true, xfwd: true } }
   // Permite abrir o front por um túnel ngrok em homologação
   const allowedHosts = ['.ngrok-free.app', '.ngrok-free.dev', '.ngrok.app', '.ngrok.io']
 

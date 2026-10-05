@@ -39,13 +39,20 @@ O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend
 3. Na máquina com o backend: `docker compose up -d` e `npm run tunnel` (pasta `backend-preco-justo`).
    O CORS do backend já aceita `https://*.vercel.app`.
 
-## Homologação com ngrok (sem Vercel)
+## Homologação com ngrok (front + API numa URL só) — recomendado
 
-1. Suba o backend com o perfil `homolog` (veja o README do backend) e copie a URL pública do ngrok.
-2. Crie `.env.local` com `VITE_API_URL=https://<sua-url>.ngrok-free.app/api`.
-3. `npm run build && npm run preview` e, em outro terminal, `ngrok http 4173` para abrir o app no celular via HTTPS (necessário para instalar o PWA).
+Pré-requisitos: ngrok instalado com `ngrok config add-authtoken <token>` e o backend rodando (`docker compose up -d` em `backend-preco-justo`).
 
-Alternativa sem `VITE_API_URL`: rode só o túnel do front (`ngrok http 4173`). O `vite preview` repassa `/api` para o backend local.
+1. Crie `.env.local` com `NGROK_DOMAIN=<seu-dominio>.ngrok-free.dev` (sem `VITE_API_URL`).
+2. Rode:
+
+```bash
+npm run homolog
+```
+
+O script gera o build, sobe o `vite preview` (que repassa `/api` para `localhost:3333`) e abre o túnel ngrok. A URL aparece no terminal. É HTTPS, então dá para instalar o app no celular e usar offline.
+
+O plano gratuito do ngrok tem um domínio estático e um túnel por vez: não rode o `npm run tunnel` do backend ao mesmo tempo. Na primeira visita, o ngrok mostra uma página de aviso; basta tocar em **Visit Site**.
 
 ## Mapa dos requisitos
 

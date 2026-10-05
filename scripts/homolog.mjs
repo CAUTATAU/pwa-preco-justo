@@ -3,11 +3,27 @@
 //   npm run homolog            (build + preview + ngrok)
 //   npm run homolog -- --skip-build
 import { spawn, spawnSync } from 'node:child_process'
+import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 
 const port = process.env.HOMOLOG_PORT || '4173'
 const domain = process.env.NGROK_DOMAIN
 const viteBin = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
+
+// Avisa antes do build se a porta já estiver ocupada (ex.: outro homolog aberto)
+const portFree = await new Promise((resolve) => {
+  const srv = createServer()
+    .once('error', () => resolve(false))
+    .once('listening', () => srv.close(() => resolve(true)))
+    .listen(Number(port))
+})
+if (!portFree) {
+  console.error(
+    `\n❌ A porta ${port} já está em uso. Provavelmente já existe um "npm run homolog" aberto em outro terminal.\n` +
+      '   Feche-o (Ctrl+C) e rode de novo, ou use outra porta: $env:HOMOLOG_PORT=4174; npm run homolog\n',
+  )
+  process.exit(1)
+}
 
 if (!process.argv.includes('--skip-build')) {
   const build = spawnSync('npm run build', { stdio: 'inherit', shell: true })

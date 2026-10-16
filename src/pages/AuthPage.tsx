@@ -1,6 +1,6 @@
 import { Loader2Icon, WifiOffIcon } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Field } from '@/components/Field'
@@ -131,10 +131,20 @@ export function AuthPage() {
           {loading && <Loader2Icon className="animate-spin" />}
           {mode === 'entrar' ? 'Entrar' : 'Criar minha conta'}
         </Button>
+        {mode === 'criar' && (
+          <p className="text-center text-xs text-muted-foreground">
+            Ao criar a conta, você aceita os{' '}
+            <Link to="/termos" className="font-medium text-primary underline">
+              Termos de uso
+            </Link>
+            .
+          </p>
+        )}
       </form>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Seus números de custo e faturamento ficam guardados no seu celular. Só vão para a nuvem se você ligar o backup.
+        Seus números de custo e faturamento ficam guardados no seu celular. Só saem daqui se você ligar o backup ou
+        usar o assistente.
       </p>
     </div>
   )

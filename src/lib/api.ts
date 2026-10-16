@@ -1,4 +1,5 @@
 import { useAuth, type User } from '@/store/auth'
+import { type PedidoChat, type RespostaChat, respostaChatSchema } from './agentContext'
 import type { AppData } from './schemas'
 
 /**
@@ -29,7 +30,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${BASE_URL}${path}`, { ...init, headers })
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.name === 'TimeoutError') {
+      throw new ApiError(0, 'O servidor demorou demais para responder. Tente de novo.')
+    }
     throw new ApiError(0, 'Não foi possível falar com o servidor. Verifique sua internet.')
   }
 
@@ -55,4 +59,16 @@ export const api = {
   getBackup: () => request<{ backup: CloudBackup | null }>('/backup'),
   putBackup: (data: AppData) => request<{ savedAt: string }>('/backup', { method: 'PUT', body: JSON.stringify({ data }) }),
   deleteBackup: () => request<void>('/backup', { method: 'DELETE' }),
+  chat: async (pedido: PedidoChat): Promise<RespostaChat> => {
+    const resposta = await request<unknown>('/agent/chat', {
+      method: 'POST',
+      body: JSON.stringify(pedido),
+      // o backend desiste em 65 s; ?. porque iOS antigo não tem AbortSignal.timeout
+      signal: AbortSignal.timeout?.(70_000),
+    })
+    // as propostas viram dado no app: só aceita o formato do contrato
+    const r = respostaChatSchema.safeParse(resposta)
+    if (!r.success) throw new ApiError(0, 'O assistente respondeu de um jeito que o app não entendeu. Tente de novo.')
+    return r.data
+  },
 }

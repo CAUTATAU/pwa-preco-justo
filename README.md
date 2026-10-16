@@ -13,14 +13,14 @@ npm install
 npm run dev        # http://localhost:5173 (repassa /api para o backend em localhost:3333)
 ```
 
-O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend, só o login e o backup ficam indisponíveis.
+O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend, só o login, o backup e o assistente ficam indisponíveis.
 
 | Comando           | O que faz                                          |
 | ----------------- | -------------------------------------------------- |
 | `npm run dev`     | Ambiente de desenvolvimento (aceita acesso pela rede) |
 | `npm run build`   | Checa tipos e gera `dist/` com o service worker     |
 | `npm run preview` | Serve o build (testar instalação/offline)           |
-| `npm test`        | Testes do motor de cálculo e do consultor (Vitest)  |
+| `npm test`        | Testes do motor de cálculo, do consultor e do assistente (Vitest) |
 | `npm run icons`   | Regera os ícones PNG a partir de `public/icon.svg`  |
 
 ## Como funciona
@@ -29,7 +29,14 @@ O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend
   - 🔴 preço abaixo do custo · 🟡 cobre o custo mas abaixo da sobra desejada · 🟢 cobre custo e sobra.
   - A tela do item mostra "a conta, passo a passo" de cada número (RN07).
 - **Consultor** (`src/lib/advisor.ts`): regras offline que apontam custos esquecidos (ferramenta, energia, embalagem, gás, perda, deslocamento), vendas que não cabem na jornada, itens com prejuízo e explicam o resultado em linguagem simples. Nunca altera dados: toda sugestão passa por um botão de confirmação.
-- **Dados no aparelho** (`src/store/data.ts`): tudo fica no `localStorage` do celular (RNF06). O backup na nuvem é opcional e só liga com consentimento explícito em **Ajustes**. Também dá para exportar/importar um arquivo `.json`.
+- **Assistente** (`src/pages/AssistantPage.tsx`, `/assistente`): perguntas em linguagem simples sobre a própria ficha, respondidas pela IA do [agente-preco-justo](https://github.com/CAUTATAU/agente-preco-justo) através do backend (`POST /api/agent/chat`).
+  - A cada pergunta, `src/lib/agentContext.ts` monta um resumo da ficha já calculada, sem o nome do negócio.
+  - As sugestões de preço ou de valor da hora viram cartões com o "antes → depois" do `calc.ts`. Só são gravadas com o toque em **Aceitar** (RF24/RN06).
+  - A conversa fica só na memória (`src/store/chat.ts`) e some ao fechar o app.
+  - Sem internet, só o assistente fica indisponível.
+- **Dados no aparelho** (`src/store/data.ts`): tudo fica no `localStorage` do celular (RNF06).
+  - O backup na nuvem é opcional e só liga com consentimento explícito em **Ajustes**. Também dá para exportar/importar um arquivo `.json`.
+  - Ao usar o assistente, o resumo da ficha e as perguntas vão para a AWS (Amazon Bedrock, EUA). Isso está nos **Termos de uso** (`/termos`), aceitos no cadastro.
 - **PWA**: o service worker guarda o app para uso sem internet; a API nunca é cacheada.
 
 ## Deploy na Vercel (front) + backend local pelo ngrok
@@ -66,9 +73,10 @@ O plano gratuito do ngrok tem um domínio estático e um túnel por vez: não ro
 | RF10 perdas | `pages/ItemFormPage.tsx` (produção) |
 | RF11–RF17 cálculo, semáforo, preço mínimo/ideal, composição | `lib/calc.ts`, `pages/ItemDetailPage.tsx` |
 | RF19, RF21, RF22 consultor | `lib/advisor.ts`, `components/TipCard.tsx` |
-| RF20 ajuda para a hora | `components/HourlyRateHelper.tsx` |
+| RF20 ajuda para a hora | `components/HourlyRateHelper.tsx`; em conversa, no assistente |
+| RF18, RF23, RF24 / RN06 assistente de IA | `lib/agentContext.ts`, `store/chat.ts`, `pages/AssistantPage.tsx` |
 | RNF01/02 offline | `vite.config.ts` (PWA), aviso em `components/AppShell.tsx` |
 | RNF04 explicações no ponto de uso | `components/Hint.tsx` |
-| RNF06 dados no aparelho + consentimento | `store/data.ts`, `pages/SettingsPage.tsx` |
+| RNF06 dados no aparelho + consentimento | `store/data.ts`, `pages/SettingsPage.tsx`, `pages/TermsPage.tsx` |
 
-**Fora desta versão:** conta de revenda (requisitos ainda em levantamento), perguntas em linguagem natural com IA (RF23; o consultor atual é por regras, sem custo) e "fecho do dia".
+**Fora desta versão:** conta de revenda (requisitos ainda em levantamento) e "fecho do dia".

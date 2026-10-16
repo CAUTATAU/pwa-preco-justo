@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell'
 import { useAuth } from '@/store/auth'
 import { useData } from '@/store/data'
 
+const AssistantPage = lazy(() => import('@/pages/AssistantPage').then((m) => ({ default: m.AssistantPage })))
 const AuthPage = lazy(() => import('@/pages/AuthPage').then((m) => ({ default: m.AuthPage })))
 const ExpensesPage = lazy(() => import('@/pages/ExpensesPage').then((m) => ({ default: m.ExpensesPage })))
 const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })))
@@ -13,6 +14,7 @@ const ItemsPage = lazy(() => import('@/pages/ItemsPage').then((m) => ({ default:
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const SuppliesPage = lazy(() => import('@/pages/SuppliesPage').then((m) => ({ default: m.SuppliesPage })))
+const TermsPage = lazy(() => import('@/pages/TermsPage').then((m) => ({ default: m.TermsPage })))
 
 /** Precisa de login (uma vez; depois funciona offline com a sessão salva). */
 function RequireAuth() {
@@ -43,6 +45,7 @@ export default function App() {
     <Suspense fallback={<div className="min-h-dvh" />}>
       <Routes>
         <Route path="/entrar" element={<PublicOnly />} />
+        <Route path="/termos" element={<TermsPage />} />
         <Route element={<RequireAuth />}>
           <Route path="/bem-vindo" element={<OnboardingRoute />} />
           <Route element={<RequireBusiness />}>
@@ -55,6 +58,7 @@ export default function App() {
               <Route path="insumos" element={<SuppliesPage />} />
               <Route path="despesas" element={<ExpensesPage />} />
               <Route path="ajustes" element={<SettingsPage />} />
+              <Route path="assistente" element={<AssistantPage />} />
             </Route>
           </Route>
         </Route>

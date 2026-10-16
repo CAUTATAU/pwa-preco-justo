@@ -1,4 +1,4 @@
-import { ChevronRightIcon, PlusIcon, TagsIcon } from 'lucide-react'
+import { ChevronRightIcon, MessageCircleMoreIcon, PlusIcon, TagsIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState, Money } from '@/components/common'
@@ -80,6 +80,17 @@ export function HomePage() {
           ))}
         </section>
       )}
+
+      <Link to="/assistente" className="flex items-center gap-3 rounded-2xl border bg-card p-4 active:bg-muted">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+          <MessageCircleMoreIcon className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Pergunte ao assistente</span>
+          <span className="block text-sm text-muted-foreground">Tire dúvidas sobre os seus preços com palavras simples.</span>
+        </span>
+        <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" />
+      </Link>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">

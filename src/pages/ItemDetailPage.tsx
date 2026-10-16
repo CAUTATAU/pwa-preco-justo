@@ -132,6 +132,11 @@ export function ItemDetailPage() {
               <Link to="/ajustes?hora=1">Definir o valor da minha hora</Link>
             </Button>
           )}
+          <Button asChild variant="secondary" className="mt-3 w-full">
+            <Link to={`/assistente?item=${id}`}>
+              <MessageCircleMoreIcon /> Perguntar ao assistente
+            </Link>
+          </Button>
         </section>
       )}
 

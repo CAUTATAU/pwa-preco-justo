@@ -1,0 +1,60 @@
+# Renderizado pela imagem do nginx no start: ${PORT}, ${API_UPSTREAM} e ${NGINX_LOCAL_RESOLVERS}
+# vêm do ambiente. Variáveis do próprio nginx ($uri etc.) ficam intactas.
+
+# IP real do visitante: o Railway entrega em X-Real-IP; fora dele, segue o X-Forwarded-For
+map $http_x_real_ip $ip_visitante {
+    ''      $proxy_add_x_forwarded_for;
+    default $http_x_real_ip;
+}
+
+log_format principal '$ip_visitante "$request" $status $body_bytes_sent $request_time';
+
+server {
+    access_log /var/log/nginx/access.log principal;
+    listen ${PORT};
+    listen [::]:${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml application/manifest+json;
+
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
+
+    location /api/ {
+        # Com variável o nginx resolve o nome a cada requisição (o IP muda quando a API é redeployada)
+        set $api ${API_UPSTREAM};
+        proxy_pass $api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $ip_visitante;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_read_timeout 120s;
+        client_max_body_size 2m;
+    }
+
+    # Service worker e HTML sempre revalidados, para a atualização do PWA chegar
+    location = /sw.js {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    # O mime.types do nginx não conhece .webmanifest
+    location = /manifest.webmanifest {
+        default_type application/manifest+json;
+    }
+
+    # Arquivos com hash no nome
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Rotas do React Router caem no index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

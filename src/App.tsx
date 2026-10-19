@@ -12,6 +12,7 @@ const ItemDetailPage = lazy(() => import('@/pages/ItemDetailPage').then((m) => (
 const ItemFormPage = lazy(() => import('@/pages/ItemFormPage').then((m) => ({ default: m.ItemFormPage })))
 const ItemsPage = lazy(() => import('@/pages/ItemsPage').then((m) => ({ default: m.ItemsPage })))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const SalesPage = lazy(() => import('@/pages/SalesPage').then((m) => ({ default: m.SalesPage })))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const SuppliesPage = lazy(() => import('@/pages/SuppliesPage').then((m) => ({ default: m.SuppliesPage })))
 const TermsPage = lazy(() => import('@/pages/TermsPage').then((m) => ({ default: m.TermsPage })))
@@ -57,6 +58,7 @@ export default function App() {
               <Route path="itens/:id/editar" element={<ItemFormPage />} />
               <Route path="insumos" element={<SuppliesPage />} />
               <Route path="despesas" element={<ExpensesPage />} />
+              <Route path="vendas" element={<SalesPage />} />
               <Route path="ajustes" element={<SettingsPage />} />
               <Route path="assistente" element={<AssistantPage />} />
             </Route>

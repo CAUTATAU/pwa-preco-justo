@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { type AppData, type Business, type Expense, type Item, type Supply, type Tool, emptyData } from '@/lib/schemas'
+import { type AppData, type Business, type Expense, type Item, type Sale, type Supply, type Tool, emptyData } from '@/lib/schemas'
 
 /**
  * Todos os dados do negócio ficam no aparelho (RNF06), salvos no localStorage.
@@ -18,6 +18,8 @@ type DataState = AppData & {
   removeTool: (id: string) => void
   saveItem: (item: Item) => void
   removeItem: (id: string) => void
+  saveSale: (sale: Sale) => void
+  removeSale: (id: string) => void
   dismissTip: (id: string) => void
   restoreTips: () => void
   replaceAll: (data: AppData) => void
@@ -60,6 +62,10 @@ export const useData = create<DataState>()(
           ...touch(),
         })),
 
+      // Vendas guardam o nome do item: apagar o item não apaga o histórico
+      saveSale: (sale) => set((s) => ({ sales: upsert(s.sales, sale), ...touch() })),
+      removeSale: (id) => set((s) => ({ sales: s.sales.filter((x) => x.id !== id), ...touch() })),
+
       dismissTip: (id) => set((s) => ({ dismissedTips: [...new Set([...s.dismissedTips, id])], ...touch() })),
       restoreTips: () => set({ dismissedTips: [], ...touch() }),
 
@@ -76,6 +82,6 @@ export const useData = create<DataState>()(
 
 /** Recorte só com os dados (sem as funções), para backup/exportação. */
 export function snapshot(state: DataState = useData.getState()): AppData {
-  const { version, business, supplies, expenses, tools, items, dismissedTips, updatedAt } = state
-  return { version, business, supplies, expenses, tools, items, dismissedTips, updatedAt }
+  const { version, business, supplies, expenses, tools, items, sales, dismissedTips, updatedAt } = state
+  return { version, business, supplies, expenses, tools, items, sales, dismissedTips, updatedAt }
 }

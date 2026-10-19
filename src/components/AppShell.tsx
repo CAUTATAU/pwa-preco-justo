@@ -1,4 +1,4 @@
-import { BoxesIcon, HomeIcon, ReceiptTextIcon, SettingsIcon, TagsIcon, WifiOffIcon } from 'lucide-react'
+import { BoxesIcon, HandCoinsIcon, HomeIcon, ReceiptTextIcon, SettingsIcon, TagsIcon, WifiOffIcon } from 'lucide-react'
 import { Suspense } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useCloudSync } from '@/hooks/useCloudSync'
@@ -17,6 +17,8 @@ export function AppShell() {
 
   const nav = [
     { to: '/', label: 'Início', icon: HomeIcon, end: true },
+    // "Atendimentos" não cabe na barra; "Vendas" serve aos dois tipos de negócio
+    { to: '/vendas', label: 'Vendas', icon: HandCoinsIcon },
     { to: '/itens', label: t.Items, icon: TagsIcon },
     { to: '/insumos', label: 'Insumos', icon: BoxesIcon },
     { to: '/despesas', label: 'Despesas', icon: ReceiptTextIcon },
@@ -47,7 +49,7 @@ export function AppShell() {
       </main>
 
       <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t bg-card/95 backdrop-blur">
-        <ul className="mx-auto grid max-w-lg grid-cols-5">
+        <ul className="mx-auto grid max-w-lg grid-cols-6">
           {nav.map(({ to, label, icon: Icon, end }) => (
             <li key={to}>
               <NavLink
@@ -55,7 +57,7 @@ export function AppShell() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors',
+                    'flex flex-col items-center gap-0.5 py-2.5 text-[10.5px] font-medium transition-colors',
                     isActive ? 'text-primary' : 'text-muted-foreground',
                   )
                 }
@@ -64,7 +66,7 @@ export function AppShell() {
                   <>
                     <span
                       className={cn(
-                        'flex h-7 w-12 items-center justify-center rounded-full transition-colors',
+                        'flex h-7 w-11 items-center justify-center rounded-full transition-colors',
                         isActive && 'bg-secondary',
                       )}
                     >

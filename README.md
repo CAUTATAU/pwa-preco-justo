@@ -34,6 +34,10 @@ O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend
   - As sugestões de preço ou de valor da hora viram cartões com o "antes → depois" do `calc.ts`. Só são gravadas com o toque em **Aceitar** (RF24/RN06).
   - A conversa fica só na memória (`src/store/chat.ts`) e some ao fechar o app.
   - Sem internet, só o assistente fica indisponível.
+- **Fecho do dia** (`src/pages/SalesPage.tsx`, `/vendas`): registro das vendas ou atendimentos de cada dia.
+  - Um toque registra 1 unidade pelo preço da ficha. O formulário aceita quantidade e preço com desconto.
+  - Cada registro guarda o nome, o preço e o custo calculado na hora (`src/lib/sales.ts`). Corrigir a ficha depois não muda o histórico.
+  - O resumo mostra quanto entrou e quanto sobrou no dia e no mês. A sobra já desconta material, contas do mês e o trabalho.
 - **Dados no aparelho** (`src/store/data.ts`): tudo fica no `localStorage` do celular (RNF06).
   - O backup na nuvem é opcional e só liga com consentimento explícito em **Ajustes**. Também dá para exportar/importar um arquivo `.json`.
   - Ao usar o assistente, o resumo da ficha e as perguntas vão para a AWS (Amazon Bedrock, EUA). Isso está nos **Termos de uso** (`/termos`), aceitos no cadastro.
@@ -77,6 +81,7 @@ O plano gratuito do ngrok tem um domínio estático e um túnel por vez: não ro
 | RF18, RF23, RF24 / RN06 assistente de IA | `lib/agentContext.ts`, `store/chat.ts`, `pages/AssistantPage.tsx` |
 | RNF01/02 offline | `vite.config.ts` (PWA), aviso em `components/AppShell.tsx` |
 | RNF04 explicações no ponto de uso | `components/Hint.tsx` |
+| Fecho do dia (vendas/atendimentos) | `lib/sales.ts`, `pages/SalesPage.tsx` |
 | RNF06 dados no aparelho + consentimento | `store/data.ts`, `pages/SettingsPage.tsx`, `pages/TermsPage.tsx` |
 
-**Fora desta versão:** conta de revenda (requisitos ainda em levantamento) e "fecho do dia".
+**Fora desta versão:** conta de revenda (requisitos ainda em levantamento).

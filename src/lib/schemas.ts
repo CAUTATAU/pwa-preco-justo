@@ -142,6 +142,25 @@ export const itemSchema = z.object({
 })
 export type Item = z.infer<typeof itemSchema>
 
+/**
+ * Venda ou atendimento registrado no fecho do dia.
+ * Guarda o nome, o preço e o custo do momento: corrigir a ficha depois não reescreve o passado.
+ */
+export const saleSchema = z.object({
+  id: z.string(),
+  /** Dia da venda no fuso do aparelho (AAAA-MM-DD) */
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.'),
+  itemId: z.string().min(1, 'Escolha o que foi vendido.'),
+  itemName: z.string().max(80),
+  qty: zPositive('a quantidade').pipe(z.number().int('Use um número inteiro.').max(10_000, 'Quantidade alta demais.')),
+  /** Preço cobrado por unidade (pode ter desconto) */
+  unitPrice: zMoney('o preço cobrado'),
+  /** Custo por unidade calculado na hora; null quando a ficha estava incompleta */
+  unitCost: z.number().nullable(),
+  createdAt: z.string(),
+})
+export type Sale = z.infer<typeof saleSchema>
+
 /* ------------------------------------------------------------------ */
 /* Pacote completo de dados (armazenamento local e backup)             */
 /* ------------------------------------------------------------------ */
@@ -155,6 +174,8 @@ export const appDataSchema = z.object({
   expenses: z.array(expenseSchema),
   tools: z.array(toolSchema),
   items: z.array(itemSchema),
+  /** Backups anteriores ao fecho do dia não têm vendas */
+  sales: z.array(saleSchema).default([]),
   dismissedTips: z.array(z.string()).default([]),
   updatedAt: z.string(),
 })
@@ -167,6 +188,7 @@ export const emptyData = (): AppData => ({
   expenses: [],
   tools: [],
   items: [],
+  sales: [],
   dismissedTips: [],
   updatedAt: new Date(0).toISOString(),
 })

@@ -21,8 +21,8 @@ export type Tip = {
 
 export function terms(type: BusinessType | undefined) {
   return type === 'producao'
-    ? { item: 'produto', items: 'produtos', unit: 'unidade', units: 'unidades', Item: 'Produto', Items: 'Produtos' }
-    : { item: 'serviço', items: 'serviços', unit: 'atendimento', units: 'atendimentos', Item: 'Serviço', Items: 'Serviços' }
+    ? { item: 'produto', items: 'produtos', unit: 'unidade', units: 'unidades', Item: 'Produto', Items: 'Produtos', sale: 'venda', sales: 'vendas', Sales: 'Vendas' }
+    : { item: 'serviço', items: 'serviços', unit: 'atendimento', units: 'atendimentos', Item: 'Serviço', Items: 'Serviços', sale: 'atendimento', sales: 'atendimentos', Sales: 'Atendimentos' }
 }
 
 type ChecklistEntry = {

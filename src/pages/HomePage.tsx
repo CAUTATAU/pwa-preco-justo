@@ -1,4 +1,4 @@
-import { ChevronRightIcon, MessageCircleMoreIcon, PlusIcon, TagsIcon } from 'lucide-react'
+import { ChevronRightIcon, HandCoinsIcon, MessageCircleMoreIcon, PlusIcon, TagsIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState, Money } from '@/components/common'
@@ -9,7 +9,8 @@ import { TipCard } from '@/components/TipCard'
 import { Button } from '@/components/ui/button'
 import { useCalc } from '@/hooks/useCalc'
 import type { PriceStatus } from '@/lib/calc'
-import { brl } from '@/lib/format'
+import { brl, num } from '@/lib/format'
+import { dayKey, salesOfDay, summarize } from '@/lib/sales'
 import { cn } from '@/lib/utils'
 
 const ORDER: Record<PriceStatus, number> = { vermelho: 0, incompleto: 1, amarelo: 2, verde: 3 }
@@ -24,6 +25,7 @@ export function HomePage() {
   const hasVolume = calc.items.some((c) => c.item.monthlyVolume > 0)
   const sorted = [...calc.items].sort((a, b) => ORDER[a.status] - ORDER[b.status])
   const visibleTips = showAllTips ? tips : tips.slice(0, 2)
+  const today = summarize(salesOfDay(data.sales, dayKey()))
 
   return (
     <div className="space-y-6">
@@ -63,6 +65,23 @@ export function HomePage() {
             Já descontados material, despesas fixas e o seu trabalho, pelas vendas que você informou.
           </p>
         </section>
+      )}
+
+      {calc.items.length > 0 && (
+        <Link to="/vendas" className="flex items-center gap-3 rounded-2xl border bg-card p-4 active:bg-muted">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <HandCoinsIcon className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{t.Sales} de hoje</span>
+            <span className="block text-sm text-muted-foreground">
+              {today.count > 0
+                ? `${brl(today.revenue)} em ${num(today.count)} ${today.count === 1 ? t.sale : t.sales}. Toque para registrar mais.`
+                : `Registre o que saiu hoje e veja quanto sobrou.`}
+            </span>
+          </span>
+          <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" />
+        </Link>
       )}
 
       {tips.length > 0 && (

@@ -1,6 +1,7 @@
 import { Loader2Icon } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Outlet, Route, Routes, useSearchParams } from 'react-router-dom'
+import { AccountEmpty } from '@/components/AccountEmpty'
 import { AppShell } from '@/components/AppShell'
 import { useCloudSync } from '@/hooks/useCloudSync'
 import { useOnline } from '@/hooks/useOnline'
@@ -47,14 +48,20 @@ function PublicOnly() {
 
 /** Quanto tempo espera os dados da conta antes de oferecer o cadastro do zero */
 const FIRST_SYNC_WAIT_MS = 10_000
+/** Conta criada há menos que isso vai direto para o cadastro: ainda não deu tempo de ter negócio em outro aparelho */
+const NEW_ACCOUNT_MS = 10 * 60_000
 
 function OnboardingRoute() {
   const business = useData((s) => s.business)
   const online = useOnline()
   const expired = useAuth((s) => s.expired)
+  const createdAt = useAuth((s) => s.user?.createdAt)
   const neverSynced = useSync((s) => s.revision === null && s.status !== 'error')
   const syncing = useSync((s) => s.status === 'syncing')
+  const syncError = useSync((s) => (s.status === 'error' ? s.error : null))
   const [gaveUp, setGaveUp] = useState(false)
+  const [startNew, setStartNew] = useState(false)
+  const [openedAt] = useState(Date.now)
 
   useEffect(() => {
     const timer = setTimeout(() => setGaveUp(true), FIRST_SYNC_WAIT_MS)
@@ -62,8 +69,9 @@ function OnboardingRoute() {
   }, [])
 
   if (business) return <Navigate to="/" replace />
+  if (startNew || !online || expired) return <OnboardingPage />
   // A conta pode já ter um negócio cadastrado em outro aparelho: espera chegar antes de pedir o cadastro
-  if (online && !expired && !gaveUp && (syncing || neverSynced)) {
+  if (!gaveUp && (syncing || neverSynced)) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-3 text-muted-foreground">
         <Loader2Icon className="size-6 animate-spin" />
@@ -71,7 +79,9 @@ function OnboardingRoute() {
       </div>
     )
   }
-  return <OnboardingPage />
+  const newAccount = !createdAt || openedAt - Date.parse(createdAt) < NEW_ACCOUNT_MS
+  if (newAccount && !syncError) return <OnboardingPage />
+  return <AccountEmpty error={syncError} onStartNew={() => setStartNew(true)} />
 }
 
 export default function App() {

@@ -10,10 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useOnline } from '@/hooks/useOnline'
 import { api } from '@/lib/api'
-import { appDataSchema, fieldErrors } from '@/lib/schemas'
-import { useAuth } from '@/store/auth'
-import { useData } from '@/store/data'
-import { useSync } from '@/store/sync'
+import { startSession } from '@/lib/cloudSync'
+import { fieldErrors } from '@/lib/schemas'
 
 const loginSchema = z.object({
   email: z.email('Digite um e-mail válido.'),
@@ -27,7 +25,6 @@ const registerSchema = loginSchema.extend({
 export function AuthPage() {
   const navigate = useNavigate()
   const online = useOnline()
-  const setSession = useAuth((s) => s.setSession)
   const [mode, setMode] = useState<'entrar' | 'criar'>('entrar')
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -51,23 +48,8 @@ export function AuthPage() {
         mode === 'entrar'
           ? await api.login(parsed.data.email, parsed.data.password)
           : await api.register(form.name.trim(), parsed.data.email, parsed.data.password)
-      setSession(token, user)
-
-      // Outro dono neste aparelho (ou aparelho novo): começa do zero e tenta restaurar o backup
-      const data = useData.getState()
-      if (data.ownerId !== user.id) {
-        data.resetFor(user.id)
-        useSync.getState().setEnabled(false)
-        if (mode === 'entrar') {
-          const { backup } = await api.getBackup().catch(() => ({ backup: null }))
-          const restored = backup ? appDataSchema.safeParse(backup.data) : null
-          if (restored?.success) {
-            useData.getState().replaceAll(restored.data)
-            useSync.getState().setEnabled(true)
-            toast.success('Encontramos seu backup e seus dados foram restaurados.')
-          }
-        }
-      }
+      // Traz a loja que a conta já tem em outro aparelho antes de abrir o app
+      if (await startSession(token, user)) toast.success('Seus dados foram carregados da sua conta.')
       navigate('/', { replace: true })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível entrar.')
@@ -126,6 +108,15 @@ export function AuthPage() {
             onChange={set('password')}
             aria-invalid={!!errors.password || undefined}
           />
+          {mode === 'entrar' && (
+            <Link
+              to="/recuperar-senha"
+              state={{ email: form.email.trim() }}
+              className="mt-1 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Esqueci minha senha
+            </Link>
+          )}
         </Field>
         <Button type="submit" size="lg" className="w-full" disabled={loading || !online}>
           {loading && <Loader2Icon className="animate-spin" />}
@@ -143,8 +134,8 @@ export function AuthPage() {
       </form>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Seus números de custo e faturamento ficam guardados no seu celular. Só saem daqui se você ligar o backup ou
-        usar o assistente.
+        Seus números ficam guardados no aparelho e na sua conta, para você usar no celular e no computador. Funciona
+        sem internet e sincroniza quando a conexão volta.
       </p>
     </div>
   )

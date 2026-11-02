@@ -1,7 +1,6 @@
 import { BoxesIcon, HandCoinsIcon, HomeIcon, ReceiptTextIcon, SettingsIcon, TagsIcon, WifiOffIcon } from 'lucide-react'
 import { Suspense } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { useCloudSync } from '@/hooks/useCloudSync'
 import { useOnline } from '@/hooks/useOnline'
 import { terms } from '@/lib/advisor'
 import { cn } from '@/lib/utils'
@@ -9,7 +8,6 @@ import { useAuth } from '@/store/auth'
 import { useData } from '@/store/data'
 
 export function AppShell() {
-  useCloudSync()
   const online = useOnline()
   const expired = useAuth((s) => s.expired)
   const type = useData((s) => s.business?.type)
@@ -38,7 +36,7 @@ export function AppShell() {
           to="/entrar?reentrar=1"
           className="sticky top-0 z-30 block bg-warn px-4 py-1.5 text-center text-xs font-medium text-black"
         >
-          Sua sessão expirou. Toque aqui para entrar de novo e manter o backup em dia.
+          Sua sessão expirou. Toque aqui para entrar de novo e continuar sincronizando.
         </Link>
       )}
 

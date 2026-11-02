@@ -1,44 +1,47 @@
-import { useEffect, useRef } from 'react'
-import { api } from '@/lib/api'
+import { useEffect } from 'react'
+import { syncNow } from '@/lib/cloudSync'
 import { useAuth } from '@/store/auth'
-import { snapshot, useData } from '@/store/data'
-import { useSync } from '@/store/sync'
+import { useData } from '@/store/data'
 import { useOnline } from './useOnline'
 
+/** De quanto em quanto tempo confere se outro aparelho mudou algo (só a revisão, uma consulta leve) */
+const POLL_MS = 30_000
+
 /**
- * Backup automático na nuvem, só quando o empreendedor ligou a opção (RNF06).
- * Espera alguns segundos sem alterações e envia uma cópia; se estiver offline,
- * envia quando a conexão voltar.
+ * Mantém os dados da conta iguais em todos os aparelhos.
+ * Envia as mudanças daqui alguns segundos depois da última alteração e traz as dos outros
+ * aparelhos ao abrir o app, ao voltar para ele e a cada 30 s. Sem internet, espera a conexão voltar.
  */
 export function useCloudSync() {
-  const enabled = useSync((s) => s.enabled)
   const token = useAuth((s) => s.token)
   const expired = useAuth((s) => s.expired)
   const updatedAt = useData((s) => s.updatedAt)
   const online = useOnline()
-  const lastPushed = useRef<string | null>(null)
+  const active = !!token && !expired && online
 
+  // Ao abrir, ao entrar e quando a internet volta
   useEffect(() => {
-    if (!enabled || !token || expired || !online) return
-    if (lastPushed.current === updatedAt) return
-    const savedAt = useSync.getState().lastSavedAt
-    if (!lastPushed.current && savedAt && savedAt >= updatedAt) {
-      lastPushed.current = updatedAt
-      return
-    }
+    if (active) void syncNow()
+  }, [active])
 
-    const timer = setTimeout(async () => {
-      const sync = useSync.getState()
-      sync.setStatus('saving')
-      try {
-        const data = snapshot()
-        const { savedAt } = await api.putBackup(data)
-        lastPushed.current = data.updatedAt
-        sync.setSaved(savedAt)
-      } catch (err) {
-        sync.setStatus('error', err instanceof Error ? err.message : 'Falha no backup')
-      }
-    }, 2500)
+  // Mudança feita aqui
+  useEffect(() => {
+    if (!active) return
+    const timer = setTimeout(() => void syncNow(), 2000)
     return () => clearTimeout(timer)
-  }, [enabled, token, expired, online, updatedAt])
+  }, [active, updatedAt])
+
+  // Mudanças feitas nos outros aparelhos
+  useEffect(() => {
+    if (!active) return
+    const onVisible = () => document.visibilityState === 'visible' && void syncNow()
+    const timer = setInterval(() => document.visibilityState === 'visible' && void syncNow(), POLL_MS)
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [active])
 }

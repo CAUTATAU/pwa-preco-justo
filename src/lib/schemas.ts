@@ -201,6 +201,14 @@ export const emptyData = (): AppData => ({
   deleted: {},
 })
 
+/** Senha nova digitada duas vezes (redefinir pelo link do e-mail ou trocar em Ajustes). */
+export const newPasswordSchema = z
+  .object({
+    password: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres.').max(72, 'A senha pode ter no máximo 72 caracteres.'),
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, { message: 'As senhas não são iguais.', path: ['confirm'] })
+
 /** Mostra a primeira mensagem de erro por campo. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {}

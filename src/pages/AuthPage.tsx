@@ -1,6 +1,6 @@
 import { Loader2Icon, WifiOffIcon } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Field } from '@/components/Field'
@@ -26,7 +26,8 @@ export function AuthPage() {
   const navigate = useNavigate()
   const online = useOnline()
   const [mode, setMode] = useState<'entrar' | 'criar'>('entrar')
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const location = useLocation()
+  const [form, setForm] = useState({ name: '', email: (location.state as { email?: string } | null)?.email ?? '', password: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
 

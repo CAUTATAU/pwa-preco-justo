@@ -2,7 +2,6 @@ import { Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { PageHeader } from '@/components/common'
 import { Field } from '@/components/Field'
 import { Button } from '@/components/ui/button'
@@ -10,14 +9,7 @@ import { Input } from '@/components/ui/input'
 import { useOnline } from '@/hooks/useOnline'
 import { api } from '@/lib/api'
 import { startSession } from '@/lib/cloudSync'
-import { fieldErrors } from '@/lib/schemas'
-
-const resetSchema = z
-  .object({
-    password: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres.').max(72, 'A senha pode ter no máximo 72 caracteres.'),
-    confirm: z.string(),
-  })
-  .refine((v) => v.password === v.confirm, { message: 'As senhas não são iguais.', path: ['confirm'] })
+import { fieldErrors, newPasswordSchema } from '@/lib/schemas'
 
 /** Página aberta pelo link do e-mail: cria a senha nova e já entra na conta. */
 export function ResetPasswordPage() {
@@ -31,7 +23,7 @@ export function ResetPasswordPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const parsed = resetSchema.safeParse(form)
+    const parsed = newPasswordSchema.safeParse(form)
     if (!parsed.success) return setErrors(fieldErrors(parsed.error))
     setErrors({})
     setLoading(true)

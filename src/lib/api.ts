@@ -57,8 +57,9 @@ export const api = {
   register: (name: string, email: string, password: string) =>
     request<Session>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
   me: () => request<{ user: User }>('/auth/me'),
-  forgotPassword: (email: string) =>
-    request<{ ok: true }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  /** Troca a senha só com o e-mail (sem confirmação: o app não tem envio de e-mail) */
+  resetPasswordDirect: (email: string, password: string) =>
+    request<Session>('/auth/reset-password-direct', { method: 'POST', body: JSON.stringify({ email, password }) }),
   resetPassword: (token: string, password: string) =>
     request<Session>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
   /** Troca a senha de quem está conectado; volta uma sessão nova */

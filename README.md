@@ -41,7 +41,7 @@ O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend
 - **Dados no aparelho** (`src/store/data.ts`): tudo fica no `localStorage`, então o app funciona offline.
   - **Sincronização entre aparelhos** (`src/lib/cloudSync.ts`, `src/hooks/useCloudSync.ts`): a mesma conta vê a mesma loja no celular e no computador. O app envia as mudanças ~2 s depois da última alteração e confere a cada 30 s (e ao voltar para o app) se outro aparelho mudou algo. O servidor junta os dois lados registro a registro, pela hora da última mudança (`clock`) e das exclusões (`deleted`).
   - Aparelho com dados da versão antiga (só no `localStorage`) envia tudo para a conta na primeira abertura da versão nova. Também dá para exportar/importar um arquivo `.json` em **Ajustes**.
-- **Recuperar senha**: `/recuperar-senha` pede o link por e-mail; `/redefinir-senha?token=…` cria a senha nova e já entra na conta.
+- **Recuperar senha**: `/recuperar-senha` troca a senha só com o e-mail da conta, sem confirmação (o projeto não tem domínio para enviar e-mail; risco aceito). Em Ajustes dá para trocar a senha estando conectado. `/redefinir-senha?token=…` fica pronta para o fluxo por e-mail, quando houver domínio.
   - Ao usar o assistente, o resumo da ficha e as perguntas vão para a AWS (Amazon Bedrock, EUA). Isso está nos **Termos de uso** (`/termos`), aceitos no cadastro.
 - **PWA**: o service worker guarda o app para uso sem internet; a API nunca é cacheada.
 

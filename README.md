@@ -13,7 +13,7 @@ npm install
 npm run dev        # http://localhost:5173 (repassa /api para o backend em localhost:3333)
 ```
 
-O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend, só o login, o backup e o assistente ficam indisponíveis.
+O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend, só o login, a sincronização e o assistente ficam indisponíveis.
 
 | Comando           | O que faz                                          |
 | ----------------- | -------------------------------------------------- |
@@ -38,8 +38,10 @@ O backend fica em `../backend-preco-justo` (veja o README de lá). Sem o backend
   - Um toque registra 1 unidade pelo preço da ficha. O formulário aceita quantidade e preço com desconto.
   - Cada registro guarda o nome, o preço e o custo calculado na hora (`src/lib/sales.ts`). Corrigir a ficha depois não muda o histórico.
   - O resumo mostra quanto entrou e quanto sobrou no dia e no mês. A sobra já desconta material, contas do mês e o trabalho.
-- **Dados no aparelho** (`src/store/data.ts`): tudo fica no `localStorage` do celular (RNF06).
-  - O backup na nuvem é opcional e só liga com consentimento explícito em **Ajustes**. Também dá para exportar/importar um arquivo `.json`.
+- **Dados no aparelho** (`src/store/data.ts`): tudo fica no `localStorage`, então o app funciona offline.
+  - **Sincronização entre aparelhos** (`src/lib/cloudSync.ts`, `src/hooks/useCloudSync.ts`): a mesma conta vê a mesma loja no celular e no computador. O app envia as mudanças ~2 s depois da última alteração e confere a cada 30 s (e ao voltar para o app) se outro aparelho mudou algo. O servidor junta os dois lados registro a registro, pela hora da última mudança (`clock`) e das exclusões (`deleted`).
+  - Aparelho com dados da versão antiga (só no `localStorage`) envia tudo para a conta na primeira abertura da versão nova. Também dá para exportar/importar um arquivo `.json` em **Ajustes**.
+- **Recuperar senha**: `/recuperar-senha` pede o link por e-mail; `/redefinir-senha?token=…` cria a senha nova e já entra na conta.
   - Ao usar o assistente, o resumo da ficha e as perguntas vão para a AWS (Amazon Bedrock, EUA). Isso está nos **Termos de uso** (`/termos`), aceitos no cadastro.
 - **PWA**: o service worker guarda o app para uso sem internet; a API nunca é cacheada.
 
@@ -82,6 +84,6 @@ O plano gratuito do ngrok tem um domínio estático e um túnel por vez: não ro
 | RNF01/02 offline | `vite.config.ts` (PWA), aviso em `components/AppShell.tsx` |
 | RNF04 explicações no ponto de uso | `components/Hint.tsx` |
 | Fecho do dia (vendas/atendimentos) | `lib/sales.ts`, `pages/SalesPage.tsx` |
-| RNF06 dados no aparelho + consentimento | `store/data.ts`, `pages/SettingsPage.tsx`, `pages/TermsPage.tsx` |
+| RNF06 dados no aparelho, sincronizados com a conta | `store/data.ts`, `lib/cloudSync.ts`, `pages/SettingsPage.tsx`, `pages/TermsPage.tsx` |
 
 **Fora desta versão:** conta de revenda (requisitos ainda em levantamento).

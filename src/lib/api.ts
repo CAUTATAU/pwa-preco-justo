@@ -48,7 +48,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 type Session = { token: string; user: User }
 
-export type CloudBackup = { data: AppData; dataUpdatedAt: string; savedAt: string }
+/** Dados da conta, compartilhados pelos aparelhos. data vem do servidor e é validado antes de usar. */
+export type AccountData = { data: unknown; revision: number; savedAt: string }
 
 export const api = {
   login: (email: string, password: string) =>
@@ -56,9 +57,14 @@ export const api = {
   register: (name: string, email: string, password: string) =>
     request<Session>('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
   me: () => request<{ user: User }>('/auth/me'),
-  getBackup: () => request<{ backup: CloudBackup | null }>('/backup'),
-  putBackup: (data: AppData) => request<{ savedAt: string }>('/backup', { method: 'PUT', body: JSON.stringify({ data }) }),
-  deleteBackup: () => request<void>('/backup', { method: 'DELETE' }),
+  forgotPassword: (email: string) =>
+    request<{ ok: true }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, password: string) =>
+    request<Session>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
+  syncRevision: () => request<{ revision: number | null }>('/sync/revision'),
+  /** Envia os dados do aparelho e recebe a versão juntada com os outros aparelhos da conta */
+  sync: (data: AppData, firstSync: boolean) =>
+    request<{ account: AccountData }>('/sync', { method: 'POST', body: JSON.stringify({ data, firstSync }) }),
   chat: async (pedido: PedidoChat): Promise<RespostaChat> => {
     const resposta = await request<unknown>('/agent/chat', {
       method: 'POST',

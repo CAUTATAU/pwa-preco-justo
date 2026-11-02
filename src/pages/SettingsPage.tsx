@@ -1,14 +1,4 @@
-import {
-  CloudIcon,
-  CloudOffIcon,
-  DownloadIcon,
-  FileUpIcon,
-  Loader2Icon,
-  LogOutIcon,
-  RotateCcwIcon,
-  SmartphoneIcon,
-  Trash2Icon,
-} from 'lucide-react'
+import { CloudIcon, CloudOffIcon, DownloadIcon, FileUpIcon, Loader2Icon, LogOutIcon, RefreshCwIcon, SmartphoneIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -18,10 +8,9 @@ import { GLOSSARY } from '@/components/Hint'
 import { HourlyRateHelper } from '@/components/HourlyRateHelper'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { useOnline } from '@/hooks/useOnline'
-import { api } from '@/lib/api'
+import { syncNow } from '@/lib/cloudSync'
 import { dateTime, toInput } from '@/lib/format'
 import { type AppData, type BusinessType, appDataSchema, businessSchema, fieldErrors } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
@@ -34,7 +23,7 @@ export function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Ajustes" />
       <BusinessSection />
-      <BackupSection />
+      <SyncSection />
       <FileSection />
       <AccountSection />
     </div>
@@ -128,135 +117,59 @@ function BusinessSection() {
   )
 }
 
-/** Backup opcional, com consentimento explícito (RNF06). */
-function BackupSection() {
+/** Os dados ficam no aparelho e na conta, iguais em todos os aparelhos em que ela entra. */
+function SyncSection() {
   const online = useOnline()
-  const { enabled, lastSavedAt, status, error, setEnabled, setSaved } = useSync()
+  const { lastSyncedAt, status, error } = useSync()
   const expired = useAuth((s) => s.expired)
-  const replaceAll = useData((s) => s.replaceAll)
-  const [consentOpen, setConsentOpen] = useState(false)
-  const [restoreOpen, setRestoreOpen] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const run = async (fn: () => Promise<void>) => {
+  const syncNowClick = async () => {
     setBusy(true)
-    try {
-      await fn()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Algo deu errado.')
-    } finally {
-      setBusy(false)
-    }
+    await syncNow()
+    setBusy(false)
+    const s = useSync.getState()
+    if (s.status === 'error') toast.error(s.error ?? 'Não foi possível sincronizar.')
+    else toast.success('Tudo sincronizado!')
   }
 
-  const saveNow = () =>
-    run(async () => {
-      const { savedAt } = await api.putBackup(snapshot())
-      setSaved(savedAt)
-      toast.success('Backup feito!')
-    })
-
-  const restore = () =>
-    run(async () => {
-      const { backup } = await api.getBackup()
-      if (!backup) return void toast.info('Ainda não existe backup na nuvem.')
-      const parsed = appDataSchema.safeParse(backup.data)
-      if (!parsed.success) return void toast.error('O backup está em um formato que este app não reconhece.')
-      replaceAll(parsed.data)
-      toast.success(`Dados restaurados (backup de ${dateTime(backup.savedAt)}).`)
-    })
-
-  const removeCloud = () =>
-    run(async () => {
-      await api.deleteBackup()
-      setEnabled(false)
-      toast.success('Cópia da nuvem apagada. Seus dados continuam neste celular.')
-    })
-
+  const ok = online && !expired && status !== 'error'
   return (
     <Section
-      title="Backup na nuvem"
-      description="Seus dados ficam só neste celular. Se quiser, guarde uma cópia na nuvem para não perder nada se trocar ou perder o aparelho."
+      title="Sincronização"
+      description="Seus dados ficam neste aparelho e na sua conta. Entre com o mesmo e-mail no celular ou no computador e encontre tudo igual."
     >
-      <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/60 p-3">
-        <div className="flex items-center gap-3">
-          {enabled ? <CloudIcon className="size-5 text-primary" /> : <CloudOffIcon className="size-5 text-muted-foreground" />}
-          <div>
-            <p className="text-sm font-medium">{enabled ? 'Backup automático ligado' : 'Backup desligado'}</p>
-            <p className="text-xs text-muted-foreground">
-              {!enabled
-                ? 'Nada é enviado.'
-                : expired
-                  ? 'Entre de novo para continuar o backup.'
-                  : status === 'saving'
-                    ? 'Salvando…'
-                    : status === 'error'
-                      ? error
-                      : lastSavedAt
-                        ? `Último backup: ${dateTime(lastSavedAt)}`
-                        : online
-                          ? 'Aguardando a primeira cópia…'
-                          : 'Será feito quando a internet voltar.'}
-            </p>
-          </div>
+      <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+        {ok ? <CloudIcon className="size-5 text-primary" /> : <CloudOffIcon className="size-5 text-muted-foreground" />}
+        <div>
+          <p className="text-sm font-medium">
+            {expired ? 'Sincronização pausada' : !online ? 'Sem internet' : status === 'error' ? 'Falha ao sincronizar' : 'Sincronização ligada'}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {expired
+              ? 'Entre de novo para continuar sincronizando.'
+              : !online
+                ? 'As mudanças daqui vão para a conta quando a internet voltar.'
+                : status === 'syncing'
+                  ? 'Sincronizando…'
+                  : status === 'error'
+                    ? error
+                    : lastSyncedAt
+                      ? `Última sincronização: ${dateTime(lastSyncedAt)}`
+                      : 'Aguardando a primeira sincronização…'}
+          </p>
         </div>
-        <Switch
-          checked={enabled}
-          onCheckedChange={(on) => (on ? setConsentOpen(true) : setEnabled(false))}
-          aria-label="Backup automático"
-        />
       </div>
-
-      <div className="mt-3 grid gap-2">
-        {enabled && (
-          <Button variant="outline" disabled={busy || !online} onClick={saveNow}>
-            {busy ? <Loader2Icon className="animate-spin" /> : <CloudIcon />} Fazer backup agora
-          </Button>
-        )}
-        <Button variant="outline" disabled={busy || !online} onClick={() => setRestoreOpen(true)}>
-          <RotateCcwIcon /> Restaurar da nuvem
-        </Button>
-        <Button variant="ghost" className="text-destructive" disabled={busy || !online} onClick={() => setDeleteOpen(true)}>
-          <Trash2Icon /> Apagar cópia da nuvem
-        </Button>
-      </div>
-
-      <ConfirmDialog
-        open={consentOpen}
-        onOpenChange={setConsentOpen}
-        title="Guardar uma cópia na nuvem?"
-        description="Seus insumos, despesas, preços e o valor da sua hora serão enviados para o servidor do Preço Justo, protegidos pela sua senha. Você pode desligar e apagar a cópia quando quiser."
-        confirmLabel="Concordo, ligar backup"
-        onConfirm={() => {
-          setEnabled(true)
-          if (online) void saveNow()
-        }}
-      />
-      <ConfirmDialog
-        open={restoreOpen}
-        onOpenChange={setRestoreOpen}
-        title="Restaurar da nuvem?"
-        description="Os dados deste celular serão substituídos pela cópia da nuvem."
-        confirmLabel="Restaurar"
-        onConfirm={restore}
-      />
-      <ConfirmDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title="Apagar a cópia da nuvem?"
-        description="O backup será desligado e a cópia apagada do servidor. Os dados deste celular não mudam."
-        confirmLabel="Apagar"
-        destructive
-        onConfirm={removeCloud}
-      />
+      <Button variant="outline" className="mt-3 w-full" disabled={busy || !online || expired} onClick={syncNowClick}>
+        {busy ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />} Sincronizar agora
+      </Button>
     </Section>
   )
 }
 
 /** Exportar/importar arquivo: backup que funciona sem internet. */
 function FileSection() {
-  const replaceAll = useData((s) => s.replaceAll)
+  const importAll = useData((s) => s.importAll)
   const dismissed = useData((s) => s.dismissedTips.length)
   const restoreTips = useData((s) => s.restoreTips)
   const businessName = useData((s) => s.business?.name ?? 'preco-justo')
@@ -288,7 +201,7 @@ function FileSection() {
   }
 
   return (
-    <Section title="Arquivo e app" description="Salve uma cópia em arquivo no celular, sem precisar de internet.">
+    <Section title="Arquivo e app" description="Salve uma cópia em arquivo no aparelho, sem precisar de internet.">
       <div className="grid gap-2">
         {canInstall && (
           <Button onClick={install}>
@@ -312,10 +225,10 @@ function FileSection() {
         open={!!pending}
         onOpenChange={(o) => !o && setPending(null)}
         title="Abrir esta cópia?"
-        description="Os dados deste celular serão substituídos pelos do arquivo."
+        description="Os dados da sua conta serão substituídos pelos do arquivo, neste e nos outros aparelhos."
         confirmLabel="Substituir"
         onConfirm={() => {
-          if (pending) replaceAll({ ...pending, updatedAt: new Date().toISOString() })
+          if (pending) importAll(pending)
           toast.success('Dados carregados do arquivo.')
           setPending(null)
         }}
@@ -343,7 +256,7 @@ function AccountSection() {
         open={open}
         onOpenChange={setOpen}
         title="Sair da conta?"
-        description="Seus dados continuam neste celular e voltam quando você entrar de novo. Atenção: se outra conta entrar neste aparelho, os dados daqui serão substituídos. Faça backup antes."
+        description="Seus dados continuam guardados na sua conta e voltam quando você entrar de novo, neste ou em outro aparelho."
         confirmLabel="Sair"
         onConfirm={() => {
           logout()

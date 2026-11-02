@@ -178,6 +178,12 @@ export const appDataSchema = z.object({
   sales: z.array(saleSchema).default([]),
   dismissedTips: z.array(z.string()).default([]),
   updatedAt: z.string(),
+  /**
+   * Sincronização entre aparelhos: hora da última mudança de cada registro ("items:<id>", "business")
+   * e das exclusões. Dados de versões antigas não têm: o servidor completa na primeira sincronização.
+   */
+  clock: z.record(z.string(), z.string()).default({}),
+  deleted: z.record(z.string(), z.string()).default({}),
 })
 export type AppData = z.infer<typeof appDataSchema>
 
@@ -191,6 +197,8 @@ export const emptyData = (): AppData => ({
   sales: [],
   dismissedTips: [],
   updatedAt: new Date(0).toISOString(),
+  clock: {},
+  deleted: {},
 })
 
 /** Mostra a primeira mensagem de erro por campo. */

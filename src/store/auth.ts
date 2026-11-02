@@ -6,7 +6,7 @@ export type User = { id: string; name: string; email: string; createdAt: string 
 type AuthState = {
   token: string | null
   user: User | null
-  /** Token recusado pelo servidor: os dados continuam no aparelho, só o backup pede novo login */
+  /** Token recusado pelo servidor: os dados continuam no aparelho, só a sincronização pede novo login */
   expired: boolean
   setSession: (token: string, user: User) => void
   markExpired: () => void

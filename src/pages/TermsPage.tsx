@@ -14,8 +14,9 @@ export function TermsPage() {
           contas rodam no seu celular e são estimativas: confira sempre antes de mudar um preço.
         </Secao>
         <Secao titulo="Onde ficam os seus dados">
-          Os números do seu negócio ficam guardados no seu celular. A conta (nome, e-mail e senha) fica no servidor do
-          Preço Justo. Uma cópia dos seus dados só vai para o servidor se você ligar o backup em Ajustes.
+          Os números do seu negócio ficam guardados no seu aparelho e na sua conta, no servidor do Preço Justo, junto com
+          o seu nome, e-mail e senha. É assim que você encontra os mesmos dados no celular e no computador. Você pode
+          salvar uma cópia em arquivo em Ajustes quando quiser.
         </Secao>
         <Secao titulo="Assistente com inteligência artificial">
           <p>Quando você faz uma pergunta ao assistente, o app envia:</p>

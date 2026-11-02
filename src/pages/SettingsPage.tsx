@@ -1,4 +1,14 @@
-import { CloudIcon, CloudOffIcon, DownloadIcon, FileUpIcon, Loader2Icon, LogOutIcon, RefreshCwIcon, SmartphoneIcon } from 'lucide-react'
+import {
+  CloudIcon,
+  CloudOffIcon,
+  DownloadIcon,
+  FileUpIcon,
+  KeyRoundIcon,
+  Loader2Icon,
+  LogOutIcon,
+  RefreshCwIcon,
+  SmartphoneIcon,
+} from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -7,12 +17,14 @@ import { Field, MoneyInput, NumberInput, QuickPicks } from '@/components/Field'
 import { GLOSSARY } from '@/components/Hint'
 import { HourlyRateHelper } from '@/components/HourlyRateHelper'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 import { useOnline } from '@/hooks/useOnline'
+import { api } from '@/lib/api'
 import { syncNow } from '@/lib/cloudSync'
 import { dateTime, toInput } from '@/lib/format'
-import { type AppData, type BusinessType, appDataSchema, businessSchema, fieldErrors } from '@/lib/schemas'
+import { type AppData, type BusinessType, appDataSchema, businessSchema, fieldErrors, newPasswordSchema } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/store/auth'
 import { snapshot, useData } from '@/store/data'
@@ -242,6 +254,7 @@ function AccountSection() {
   const user = useAuth((s) => s.user)
   const logout = useAuth((s) => s.logout)
   const [open, setOpen] = useState(false)
+  const [passwordOpen, setPasswordOpen] = useState(false)
 
   return (
     <Section title="Conta">
@@ -249,9 +262,15 @@ function AccountSection() {
         <p className="font-medium">{user?.name}</p>
         <p className="text-muted-foreground">{user?.email}</p>
       </div>
-      <Button variant="outline" className={cn('w-full')} onClick={() => setOpen(true)}>
-        <LogOutIcon /> Sair
-      </Button>
+      <div className="grid gap-2">
+        <Button variant="outline" onClick={() => setPasswordOpen(true)}>
+          <KeyRoundIcon /> Trocar senha
+        </Button>
+        <Button variant="outline" className={cn('w-full')} onClick={() => setOpen(true)}>
+          <LogOutIcon /> Sair
+        </Button>
+      </div>
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
@@ -264,5 +283,82 @@ function AccountSection() {
         }}
       />
     </Section>
+  )
+}
+
+/**
+ * Troca a senha sem pedir a atual: serve também para quem esqueceu a senha e ainda está
+ * conectado neste aparelho (por exemplo, para entrar no computador).
+ */
+function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const online = useOnline()
+  const setSession = useAuth((s) => s.setSession)
+  const [form, setForm] = useState({ password: '', confirm: '' })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [busy, setBusy] = useState(false)
+
+  const close = (next: boolean) => {
+    if (!next) {
+      setForm({ password: '', confirm: '' })
+      setErrors({})
+    }
+    onOpenChange(next)
+  }
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const parsed = newPasswordSchema.safeParse(form)
+    if (!parsed.success) return setErrors(fieldErrors(parsed.error))
+    setErrors({})
+    setBusy(true)
+    try {
+      const { token, user } = await api.changePassword(parsed.data.password)
+      setSession(token, user)
+      toast.success('Senha trocada. Use a nova senha para entrar nos outros aparelhos.')
+      close(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível trocar a senha.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Trocar senha</DialogTitle>
+          <DialogDescription>Crie a nova senha da sua conta. Ela passa a valer em todos os aparelhos.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={save} className="space-y-4" noValidate>
+          <Field label="Nova senha" htmlFor="new-password" error={errors.password}>
+            <Input
+              id="new-password"
+              type="password"
+              autoComplete="new-password"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              aria-invalid={!!errors.password || undefined}
+            />
+          </Field>
+          <Field label="Repita a nova senha" htmlFor="new-password-confirm" error={errors.confirm}>
+            <Input
+              id="new-password-confirm"
+              type="password"
+              autoComplete="new-password"
+              value={form.confirm}
+              onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
+              aria-invalid={!!errors.confirm || undefined}
+            />
+          </Field>
+          <DialogFooter>
+            <Button type="submit" className="w-full" disabled={busy || !online}>
+              {busy && <Loader2Icon className="animate-spin" />}
+              Salvar nova senha
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

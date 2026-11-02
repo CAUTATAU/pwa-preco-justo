@@ -1,4 +1,4 @@
-import { Loader2Icon, MailCheckIcon } from 'lucide-react'
+import { Loader2Icon, MailCheckIcon, SmartphoneIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -20,6 +20,7 @@ export function ForgotPasswordPage() {
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const [otherMethod, setOtherMethod] = useState(false)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,6 +51,9 @@ export function ForgotPasswordPage() {
           <p className="text-sm text-muted-foreground">
             O link vale por 1 hora. Não chegou? Olhe a caixa de spam ou peça de novo daqui a 2 minutos.
           </p>
+          <Button variant="secondary" className="w-full" onClick={() => setOtherMethod(true)}>
+            Não chegou? Tentar outro método
+          </Button>
           <Button asChild variant="outline" className="w-full">
             <Link to="/entrar">Voltar para entrar</Link>
           </Button>
@@ -74,7 +78,35 @@ export function ForgotPasswordPage() {
             {loading && <Loader2Icon className="animate-spin" />}
             Enviar link
           </Button>
+          <Button type="button" variant="link" className="w-full" onClick={() => setOtherMethod(true)}>
+            Tentar outro método
+          </Button>
         </form>
+      )}
+
+      {otherMethod && (
+        <div className="mt-6 space-y-3 rounded-2xl border bg-card p-4 text-sm">
+          <div className="flex items-center gap-2 font-semibold">
+            <SmartphoneIcon className="size-5 text-primary" />
+            Usar um aparelho em que você já entrou
+          </div>
+          <p className="text-muted-foreground">
+            Se a sua conta ainda está aberta em outro aparelho (por exemplo, no celular), dá para criar a senha nova
+            por lá, sem e-mail:
+          </p>
+          <ol className="list-decimal space-y-1 pl-5">
+            <li>Abra o Preço Justo nesse aparelho.</li>
+            <li>
+              Vá em <strong>Ajustes</strong> e, em <strong>Conta</strong>, toque em <strong>Trocar senha</strong>.
+            </li>
+            <li>Crie a senha nova e volte aqui para entrar com ela.</li>
+          </ol>
+          <Button asChild className="w-full">
+            <Link to="/entrar" state={{ email: email.trim() }}>
+              Já troquei, quero entrar
+            </Link>
+          </Button>
+        </div>
       )}
     </div>
   )

@@ -61,6 +61,9 @@ export const api = {
     request<{ ok: true }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (token: string, password: string) =>
     request<Session>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
+  /** Troca a senha de quem está conectado; volta uma sessão nova */
+  changePassword: (password: string) =>
+    request<Session>('/auth/change-password', { method: 'POST', body: JSON.stringify({ password }) }),
   syncRevision: () => request<{ revision: number | null }>('/sync/revision'),
   /** Envia os dados do aparelho e recebe a versão juntada com os outros aparelhos da conta */
   sync: (data: AppData, firstSync: boolean) =>

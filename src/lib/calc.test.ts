@@ -143,4 +143,28 @@ describe('parseNumber', () => {
     expect(parseNumber('7.5')).toBe(7.5)
     expect(parseNumber('')).toBeNaN()
   })
+
+})
+
+describe('ficha de produção', () => {
+  it('produto sem ingredientes fica incompleto, e não "saudável" só com tempo e despesas', () => {
+    // Caso real: brownie com preço e tempo, mas nenhum ingrediente ainda — mostrava R$ 3,20 e "Saudável"
+    const data = base({
+      business: { name: 'Brownies', type: 'producao', hourlyRate: 25, weeklyHours: 40, targetMargin: 20 },
+      items: [
+        { id: 'b', name: 'Brownie', price: 6, minutes: 150, batchYield: 24, monthlyVolume: 192, lossPercent: 6, composition: [], variantOf: null },
+      ],
+    })
+    const c = computeAll(data).items[0]
+    expect(c.material).toBe(0)
+    expect(c.total).toBeGreaterThan(0)
+    expect(c.missingMaterial).toBe(true)
+    expect(c.status).toBe('incompleto')
+    expect(c.missing).toContain('os ingredientes e embalagens')
+    expect(explainItem(c, data)[0]).toContain('só o seu tempo e as despesas fixas')
+
+    // Serviço pode não ter material: continua completo
+    const servico = { ...data, business: { ...data.business!, type: 'servico' as const } }
+    expect(computeAll(servico).items[0].missingMaterial).toBe(false)
+  })
 })

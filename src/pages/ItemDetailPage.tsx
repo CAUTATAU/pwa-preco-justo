@@ -127,9 +127,14 @@ export function ItemDetailPage() {
               </li>
             ))}
           </ul>
-          {c.status === 'incompleto' && (
+          {c.status === 'incompleto' && !data.business?.hourlyRate && (
             <Button asChild className="mt-3 w-full">
               <Link to="/ajustes?hora=1">Definir o valor da minha hora</Link>
+            </Button>
+          )}
+          {c.missingMaterial && (
+            <Button asChild className="mt-3 w-full">
+              <Link to={`/itens/${id}/editar`}>Adicionar ingredientes e embalagens</Link>
             </Button>
           )}
           <Button asChild variant="secondary" className="mt-3 w-full">

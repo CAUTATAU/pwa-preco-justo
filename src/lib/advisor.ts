@@ -215,7 +215,12 @@ export function explainItem(c: ItemCost, data: AppData): string[] {
   const targetMargin = (data.business?.targetMargin ?? 0) / 100
 
   if (c.status === 'incompleto') {
-    lines.push(`A conta ainda está incompleta: falta ${c.missing.join(', ')}. Sem isso, seu trabalho entra de graça no preço.`)
+    const consequence = !data.business?.hourlyRate
+      ? 'Sem isso, seu trabalho entra de graça no preço.'
+      : c.missingMaterial
+        ? `Por enquanto, o custo de ${brl(c.total)} é só o seu tempo e as despesas fixas: falta somar o material.`
+        : 'Sem isso, não dá para saber se o preço cobre o custo.'
+    lines.push(`A conta ainda está incompleta: falta ${c.missing.join(', ')}. ${consequence}`)
   }
 
   const costParts = priceParts(c).filter((p) => p.key !== 'profit' && p.value > 0)

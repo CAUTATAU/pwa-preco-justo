@@ -1,12 +1,13 @@
 import { useAuth, type User } from '@/store/auth'
 import { type PedidoChat, type RespostaChat, respostaChatSchema } from './agentContext'
+import type { AdminOverview } from './adminTypes'
 import type { AppData } from './schemas'
 
 /**
  * Em desenvolvimento o Vite repassa /api para o backend (vite.config.ts).
  * Em homologação, aponte VITE_API_URL para a URL do ngrok (ex.: https://xxxx.ngrok-free.app/api).
  */
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '/api'
+export const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '/api'
 
 export class ApiError extends Error {
   status: number
@@ -69,6 +70,7 @@ export const api = {
   /** Envia os dados do aparelho e recebe a versão juntada com os outros aparelhos da conta */
   sync: (data: AppData, firstSync: boolean) =>
     request<{ account: AccountData }>('/sync', { method: 'POST', body: JSON.stringify({ data, firstSync }) }),
+  adminOverview: (days: number) => request<AdminOverview>(`/admin/overview?days=${days}`),
   chat: async (pedido: PedidoChat): Promise<RespostaChat> => {
     const resposta = await request<unknown>('/agent/chat', {
       method: 'POST',

@@ -11,9 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCalc } from '@/hooks/useCalc'
-import { computeItem } from '@/lib/calc'
-import { brl, parseNumber, toInput, uid } from '@/lib/format'
-import { type Item, fieldErrors, itemSchema } from '@/lib/schemas'
+import { computeItem, supplyUnitCost } from '@/lib/calc'
+import { brl, num, parseNumber, toInput, uid } from '@/lib/format'
+import { type Item, type Supply, fieldErrors, itemSchema } from '@/lib/schemas'
 import { useData } from '@/store/data'
 
 type Row = { key: string; supplyId: string; qty: string }
@@ -177,7 +177,9 @@ function ItemForm({ initial, isEdit }: { initial?: Item; isEdit: boolean }) {
           <div>
             <h2 className="font-semibold">{producao ? 'Ingredientes e embalagens' : 'Material usado'}</h2>
             <p className="text-xs text-muted-foreground">
-              {producao ? 'O que vai em um lote/fornada.' : 'O que você gasta em cada atendimento.'}
+              {producao
+                ? 'O que vai em um lote/fornada: coloque quanto vai no lote, não quanto o pacote rende.'
+                : 'O que você gasta em cada atendimento.'}
             </p>
           </div>
 
@@ -210,16 +212,15 @@ function ItemForm({ initial, isEdit }: { initial?: Item; isEdit: boolean }) {
                   </Button>
                 </div>
                 {s?.mode === 'rendimento' && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="shrink-0 text-muted-foreground">Usa</span>
-                    <NumberInput
-                      value={r.qty}
-                      onValueChange={(qty) => updateRow(r.key, { qty })}
-                      suffix={s.unit}
-                      className="bg-card"
-                      aria-label={`Quantidade de ${s.name}`}
-                    />
-                  </div>
+                  <SupplyQty
+                    supply={s}
+                    qty={r.qty}
+                    onQty={(qty) => updateRow(r.key, { qty })}
+                    perUnit={preview.materialLines.find((l) => l.supplyId === s.id)?.perUnit ?? 0}
+                    producao={producao}
+                    batch={draft.batchYield}
+                    unitWord={t.unit}
+                  />
                 )}
                 {s?.mode === 'duracao' && (
                   <p className="text-xs text-muted-foreground">
@@ -250,10 +251,27 @@ function ItemForm({ initial, isEdit }: { initial?: Item; isEdit: boolean }) {
 
       {/* Prévia ao vivo do cálculo */}
       <div className="sticky bottom-20 z-10 mt-6 rounded-2xl border bg-card/95 p-4 shadow-lg backdrop-blur">
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-1 flex items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">Custo por {t.unit}</span>
           <span className="text-lg font-bold tabular-nums">{brl(preview.total)}</span>
         </div>
+        {/* De onde vem o custo: sem isso, um custo antes de ter ingredientes parece erro */}
+        <p className="mb-3 text-xs leading-relaxed text-muted-foreground tabular-nums">
+          {[
+            ['Material', preview.material],
+            ['Seu tempo', preview.labor],
+            ['Despesas fixas', preview.fixed],
+            ['Perdas', preview.loss],
+          ]
+            .filter(([label, v]) => label === 'Material' || (v as number) > 0.004)
+            .map(([label, v]) => `${label} ${brl(v as number)}`)
+            .join(' · ')}
+        </p>
+        {preview.missingMaterial && (
+          <p className="mb-3 rounded-lg bg-warn/15 px-3 py-2 text-xs leading-relaxed">
+            Sem ingredientes ainda: esse custo é só o seu tempo e as despesas fixas.
+          </p>
+        )}
         <div className="mb-3 flex items-center justify-between gap-2 text-sm">
           <StatusBadge status={preview.status} />
           <span className="text-muted-foreground">
@@ -271,5 +289,67 @@ function ItemForm({ initial, isEdit }: { initial?: Item; isEdit: boolean }) {
         onSaved={(s) => setRows((rs) => [...rs, { key: uid(), supplyId: s.id, qty: '1' }])}
       />
     </form>
+  )
+}
+
+/**
+ * Quanto de um insumo vai no lote (ou no atendimento), com o custo dessa linha ao vivo.
+ * Confusão comum: digitar quanto o pacote rende (ex.: "10 receitas") em vez de quanto vai no lote (1 receita).
+ */
+function SupplyQty({
+  supply,
+  qty,
+  onQty,
+  perUnit,
+  producao,
+  batch,
+  unitWord,
+}: {
+  supply: Supply
+  qty: string
+  onQty: (qty: string) => void
+  perUnit: number
+  producao: boolean
+  batch: number
+  unitWord: string
+}) {
+  const q = n0(qty)
+  const unitCost = supplyUnitCost(supply)
+  const unitSingular = supply.unit.replace(/s$/, '')
+  const where = producao ? 'neste lote' : `em cada ${unitWord}`
+  const wholePackage = supply.amount > 1 && q >= supply.amount
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted-foreground">
+        O pacote de {brl(supply.price)} rende {num(supply.amount)} {supply.unit} ({brl(unitCost)} cada {unitSingular}).
+        Quanto vai {where}?
+      </p>
+      <NumberInput
+        value={qty}
+        onValueChange={onQty}
+        suffix={supply.unit}
+        className="bg-card"
+        aria-label={`Quantidade de ${supply.name} (${supply.unit}) ${where}`}
+      />
+      {q > 0 && (
+        <p className="text-xs tabular-nums text-muted-foreground">
+          = {brl(unitCost * q)} {where}
+          {producao && batch > 1 && (
+            <>
+              {' '}
+              ÷ {num(batch)} unidades = <strong className="text-foreground">{brl(perUnit)} por unidade</strong>
+            </>
+          )}
+        </p>
+      )}
+      {wholePackage && (
+        <p className="rounded-lg bg-warn/15 px-3 py-2 text-xs leading-relaxed">
+          Atenção: {num(q)} {supply.unit} é o pacote inteiro. Se o pacote rende {num(supply.amount)} {supply.unit} e{' '}
+          {producao ? 'cada lote' : `cada ${unitWord}`} usa só um pouco, coloque aqui só o que vai{' '}
+          {producao ? 'em um lote' : `em um ${unitWord}`}
+          {/receita/i.test(supply.unit) && producao ? ' (se o lote é 1 receita, coloque 1)' : ''}.
+        </p>
+      )}
+    </div>
   )
 }

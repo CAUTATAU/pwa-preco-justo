@@ -1,7 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type User = { id: string; name: string; email: string; createdAt: string }
+export type User = {
+  id: string
+  name: string
+  email: string
+  createdAt: string
+  /** Sessões salvas antes do painel de admin não têm o campo: contam como conta comum */
+  role?: 'user' | 'admin'
+}
+
+export const isAdmin = (user: User | null | undefined) => user?.role === 'admin'
 
 type AuthState = {
   token: string | null

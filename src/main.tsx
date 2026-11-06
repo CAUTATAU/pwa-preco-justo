@@ -5,6 +5,7 @@ import { registerSW } from 'virtual:pwa-register'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import App from './App'
+import { initAnalytics } from './lib/analytics'
 import './index.css'
 
 // Service worker: guarda o app no celular para funcionar sem internet (RNF01)
@@ -19,6 +20,9 @@ const updateSW = registerSW({
     toast.success('Pronto! O app já funciona sem internet.')
   },
 })
+
+// Medição de uso para o painel do administrador (nada do que é digitado é enviado)
+initAnalytics()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

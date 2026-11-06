@@ -56,6 +56,8 @@ export type ItemCost = {
   status: PriceStatus
   /** Tudo que a ficha precisa para estar completa */
   missing: string[]
+  /** Produto de produção sem nenhum ingrediente/embalagem: o custo ainda é só tempo e despesas */
+  missingMaterial: boolean
   formulas: { labor: string; fixed: string; loss: string }
 }
 
@@ -174,11 +176,14 @@ export function computeItem(item: Item, data: AppData, overhead = computeOverhea
   if (!business?.weeklyHours) missing.push('as horas que você trabalha por semana')
   if (item.minutes <= 0) missing.push(`o tempo que leva cada ${unitWord}`)
   if (price <= 0) missing.push('o preço que você cobra hoje')
+  // Serviço pode não gastar material; produto feito em lote sempre leva ingrediente ou embalagem
+  const missingMaterial = business?.type === 'producao' && item.composition.length === 0
+  if (missingMaterial) missing.push('os ingredientes e embalagens')
 
   // RN04 — semáforo (RN01: sem a hora de trabalho a ficha não está completa)
   const EPS = 0.005
   let status: PriceStatus
-  if (!business?.hourlyRate || price <= 0) status = 'incompleto'
+  if (!business?.hourlyRate || price <= 0 || missingMaterial) status = 'incompleto'
   else if (price + EPS < total) status = 'vermelho'
   else if (price + EPS < idealPrice) status = 'amarelo'
   else status = 'verde'
@@ -202,6 +207,7 @@ export function computeItem(item: Item, data: AppData, overhead = computeOverhea
     monthlyProfit: profit * item.monthlyVolume,
     status,
     missing,
+    missingMaterial,
     formulas: {
       labor: `${timeText} = ${num(hoursPerUnit)} h × ${brl(hourlyRate)} por hora`,
       fixed:

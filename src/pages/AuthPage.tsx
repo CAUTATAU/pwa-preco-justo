@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useOnline } from '@/hooks/useOnline'
+import { forgetThisSession } from '@/lib/analytics'
 import { api } from '@/lib/api'
 import { startSession } from '@/lib/cloudSync'
 import { fieldErrors } from '@/lib/schemas'
+import { useAuth } from '@/store/auth'
 
 const loginSchema = z.object({
   email: z.email('Digite um e-mail válido.'),
@@ -49,6 +51,13 @@ export function AuthPage() {
         mode === 'entrar'
           ? await api.login(parsed.data.email, parsed.data.password)
           : await api.register(form.name.trim(), parsed.data.email, parsed.data.password)
+      if (user.role === 'admin') {
+        // O admin não tem loja: não mexe nos dados deste aparelho nem sincroniza
+        useAuth.getState().setSession(token, user)
+        void forgetThisSession()
+        navigate('/admin', { replace: true })
+        return
+      }
       // Traz a loja que a conta já tem em outro aparelho antes de abrir o app
       if (await startSession(token, user)) toast.success('Seus dados foram carregados da sua conta.')
       navigate('/', { replace: true })

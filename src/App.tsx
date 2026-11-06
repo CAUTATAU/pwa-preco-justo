@@ -1,14 +1,16 @@
 import { Loader2Icon } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Navigate, Outlet, Route, Routes, useSearchParams } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
 import { AccountEmpty } from '@/components/AccountEmpty'
 import { AppShell } from '@/components/AppShell'
 import { useCloudSync } from '@/hooks/useCloudSync'
 import { useOnline } from '@/hooks/useOnline'
-import { useAuth } from '@/store/auth'
+import { trackPage } from '@/lib/analytics'
+import { isAdmin, useAuth } from '@/store/auth'
 import { useData } from '@/store/data'
 import { useSync } from '@/store/sync'
 
+const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const AssistantPage = lazy(() => import('@/pages/AssistantPage').then((m) => ({ default: m.AssistantPage })))
 const AuthPage = lazy(() => import('@/pages/AuthPage').then((m) => ({ default: m.AuthPage })))
 const ForgotPasswordPage = lazy(() =>
@@ -29,8 +31,27 @@ const TermsPage = lazy(() => import('@/pages/TermsPage').then((m) => ({ default:
 /** Precisa de login (uma vez; depois funciona offline com a sessão salva). */
 function RequireAuth() {
   const token = useAuth((s) => s.token)
+  const admin = useAuth((s) => isAdmin(s.user))
   useCloudSync()
-  return token ? <Outlet /> : <Navigate to="/entrar" replace />
+  if (!token) return <Navigate to="/entrar" replace />
+  // A conta de administrador não tem negócio: só o painel
+  if (admin) return <Navigate to="/admin" replace />
+  return <Outlet />
+}
+
+/** Painel de uso: só a conta de administrador (o servidor confere de novo a cada pedido). */
+function RequireAdmin() {
+  const token = useAuth((s) => s.token)
+  const admin = useAuth((s) => isAdmin(s.user))
+  if (!token) return <Navigate to="/entrar" replace />
+  return admin ? <Outlet /> : <Navigate to="/" replace />
+}
+
+/** Conta cada troca de tela para o painel de uso. */
+function PageTracker() {
+  const { pathname } = useLocation()
+  useEffect(() => trackPage(pathname), [pathname])
+  return null
 }
 
 /** Precisa ter o negócio cadastrado. */
@@ -42,8 +63,9 @@ function RequireBusiness() {
 function PublicOnly() {
   const token = useAuth((s) => s.token)
   const expired = useAuth((s) => s.expired)
+  const admin = useAuth((s) => isAdmin(s.user))
   const [params] = useSearchParams()
-  return token && !expired && !params.has('reentrar') ? <Navigate to="/" replace /> : <AuthPage />
+  return token && !expired && !params.has('reentrar') ? <Navigate to={admin ? '/admin' : '/'} replace /> : <AuthPage />
 }
 
 /** Quanto tempo espera os dados da conta antes de oferecer o cadastro do zero */
@@ -87,11 +109,15 @@ function OnboardingRoute() {
 export default function App() {
   return (
     <Suspense fallback={<div className="min-h-dvh" />}>
+      <PageTracker />
       <Routes>
         <Route path="/entrar" element={<PublicOnly />} />
         <Route path="/termos" element={<TermsPage />} />
         <Route path="/recuperar-senha" element={<ForgotPasswordPage />} />
         <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+        <Route element={<RequireAdmin />}>
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
         <Route element={<RequireAuth />}>
           <Route path="/bem-vindo" element={<OnboardingRoute />} />
           <Route element={<RequireBusiness />}>
